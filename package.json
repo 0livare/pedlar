@@ -1,0 +1,27 @@
+{
+  "name": "pedlar",
+  "version": "0.1.0",
+  "description": "A JavaScript utility for logically grouping the performance and destruction of side effects",
+  "main":   "dist/pedlar.js",
+  "files": ["dist/*"],
+  "types": "dist/pedlar.d.ts",
+  "repository": "github.com/zposten/pedlar",
+  "author": "Zach Posten",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "clean": "rm -rf dist && mkdir dist",
+    "build": "yarn clean && rollup --config",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^4.1.1",
+    "@types/jest": "^25.2.1",
+    "jest": "^25.3.0",
+    "prettier": "^2.0.4",
+    "rollup": "^2.7.2",
+    "ts-jest": "^25.4.0",
+    "tslib": "^1.11.1",
+    "typescript": "^3.8.3"
+  }
+}

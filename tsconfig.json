@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "sourceMap": true,           // Automatically generate source map files
+    "declaration": true,         // Automatically generate .d.ts files
+    "noImplicitAny": true,       // Raise an error for expressions with an implied `any` type
+    "target": "ESNext",          // Compile files using the latest JavaScript features
+    "lib": ["ES2015", "DOM"],
+    "moduleResolution": "node",  // Search under node_modules for non-relative imports
+    "esModuleInterop": true      // Import non-ES modules as default imports
+  },
+  "include": ["src"],            // Only compile the src directory
+  "exclude": ["**/*.test.*"]     // Do not compile test files
+
+}
