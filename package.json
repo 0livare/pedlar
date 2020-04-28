@@ -4,7 +4,6 @@
   "description": "A JavaScript utility for logically grouping the performance and destruction of side effects",
   "main":   "dist/pedlar.js",
   "files": ["dist/*"],
-  "types": "dist/pedlar.d.ts",
   "repository": "https://github.com/zposten/pedlar",
   "author": "Zach Posten",
   "license": "MIT",
