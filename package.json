@@ -5,7 +5,7 @@
   "main":   "dist/pedlar.js",
   "files": ["dist/*"],
   "types": "dist/pedlar.d.ts",
-  "repository": "github.com/zposten/pedlar",
+  "repository": "https://github.com/zposten/pedlar",
   "author": "Zach Posten",
   "license": "MIT",
   "private": false,
