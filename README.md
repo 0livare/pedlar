@@ -65,9 +65,22 @@ pedlar.destroy(id)
 
 Clean up all side effects that have been performed since the last time this function was called.
 
-### `addEvent(el, eventType, handler, options)`
+### `addEvent(el, eventType, handler)`
 
 Perform the specific effect of adding an event listener to an element. This event is then automatically removed when the side effect is destroyed.
+
+```js
+let pedlar = new Pedlar()
+let el = document.getElementById('my-button')
+
+// Adds the click event
+pedlar.addEvent(el, 'click', () => console.log('My button was clicked'))
+
+// ...
+
+// Removes the click event, along with cleaning up all other side effects
+pedlar.destroyAll()
+```
 
 | Argument name | Type                                 | Description                                                                             |
 | ------------- | ------------------------------------ | --------------------------------------------------------------------------------------- |
