@@ -66,9 +66,9 @@ export class Pedlar {
    * @param handler The handler that should be invoked when the event is emitted
    * @param options Event listener options
    */
-  public addEvent(
-    el: Element,
-    eventType: string,
+  public addEvent<K extends keyof HTMLElementEventMap>(
+    el: HTMLElement,
+    eventType: K,
     handler: EventListenerOrEventListenerObject,
     options?: boolean | EventListenerOptions,
   ): string {
