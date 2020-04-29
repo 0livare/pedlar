@@ -10,17 +10,21 @@ The problem with these functions is that often times the work that you have to d
 
 Pedlar addresses that problem by letting you declare both the "init" and "destroy" logic at the same time in the same place. It's just not all run at the same time. The function that you pass to `perform()` (the effect) is run immediately, and the function that you return from the effect is not run until you tell Pedlar to destroy that side effect.
 
+Additionally, there's also usually an "update" life cycle function (`componentDidUpdate()` / `ngOnChanges()`). Oftentimes identical or similar work takes place in the "update" and "init" functions. Pedlar also provides functionality to re-perform a particular effect any time a particular dependency of that effect changes.
+
 ## Installation
 
 ```bash
 # Install with yarn
 yarn add pedlar
 
-# Install with npm
+# Or install with npm
 npm i pedlar
 ```
 
-## Example usage
+## Examples
+
+### Simple Usage
 
 ```js
 import Pedlar from 'pedlar'
@@ -32,12 +36,54 @@ pedlar.perform(() => {
   return () => console.log('Side effect 1 cleaned up!')
 })
 
+// LOG: 'Side effect 1 performed'
+
 pedlar.perform(() => {
   console.log('Side effect 2 performed')
   return () => console.log('Side effect 2 cleaned up!')
 })
 
+// LOG: 'Side effect 2 performed'
+
 pedlar.destroyAll()
+
+// LOG: 'Side effect 1 cleaned up!'
+// LOG: 'Side effect 2 cleaned up!'
+```
+
+### Add and automatically remove an event
+
+```js
+let pedlar = new Pedlar()
+let el = document.getElementById('my-button')
+
+// Adds the click event
+pedlar.addEvent(el, 'click', () => console.log('My button was clicked'))
+
+// ...
+
+// Removes the click event, along with cleaning up all other side effects
+pedlar.destroyAll()
+```
+
+### Re-perform an event when dependencies have changed
+
+```js
+let pedlar = new Pedlar()
+let result = pedlar.perform(() => {
+  console.log('Side effect performed')
+  return () => console.log('Side effect cleaned up!')
+}, ['my-dependency'])
+
+// LOG: 'Side effect performed'
+
+result.performAgain(['my-dependency'])
+// Effect is not performed again, dependencies have not changed
+
+result.performAgain(['my-changed-dependency'])
+
+// LOG: 'Side effect cleaned up!'
+// LOG: 'Side effect performed'
 ```
 
 ## API
@@ -46,6 +92,15 @@ pedlar.destroyAll()
 
 Perform a side effect. You can optionally return a function from the `effect` that cleans up the effect. This ensures that these highly related functions are logically grouped in your code.
 
+Returns an object with the following properties:
+
+| Property name  | Type                                | Description                                                                                                                                                                                                                           |
+| -------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`           | `string`                            | The ID of this effect that can be used to individually destroy it                                                                                                                                                                     |
+| `performAgain` | `(currentDependencies?: D) => void` | A function that takes the current values of the dependencies originally passed to the perform function and runs the effect again if those dependencies have changed since the original execution or the last call to `performAgain()` |
+
+> Note: The `performAgain()` function will always run the clean up function (if one exists) before re-running the effect.
+
 ### `destroy(id)`
 
 Clean up a particular side effect that has been performed.
@@ -53,7 +108,7 @@ Clean up a particular side effect that has been performed.
 ```js
 let pedlar = new Pedlar()
 
-let id = pedlar.perform(() => {
+let {id} = pedlar.perform(() => {
   console.log('Side effect 1 performed')
   return () => console.log('Side effect 1 cleaned up!')
 })
@@ -68,19 +123,6 @@ Clean up all side effects that have been performed since the last time this func
 ### `addEvent(el, eventType, handler)`
 
 Perform the specific effect of adding an event listener to an element. This event is then automatically removed when the side effect is destroyed.
-
-```js
-let pedlar = new Pedlar()
-let el = document.getElementById('my-button')
-
-// Adds the click event
-pedlar.addEvent(el, 'click', () => console.log('My button was clicked'))
-
-// ...
-
-// Removes the click event, along with cleaning up all other side effects
-pedlar.destroyAll()
-```
 
 | Argument name | Type                                 | Description                                                                             |
 | ------------- | ------------------------------------ | --------------------------------------------------------------------------------------- |
