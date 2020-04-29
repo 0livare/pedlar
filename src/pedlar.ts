@@ -1,5 +1,11 @@
 import {generateId} from './generateId'
 
+type PerformanceResult<D> = {
+  id: string
+  performAgain: (currentDependencies?: D) => void
+  [key: string]: any
+}
+
 /**
  * A utility for logically grouping the performance and
  * destruction of side effects. Inspired by React's useEffect() hook.
@@ -16,23 +22,46 @@ export class Pedlar {
    * return another function that when invoked will clean up the
    * original effect.  The returned function will automatically be
    * invoked when the side effect is destroyed.
-   * @returns The ID of this side effect, that can be used to
-   * individually clean it up by calling the `destroy() method.
+   * @returns An object containing:
+   *   - The ID of this side effect that can be used to individually
+   *    clean it up by calling the `destroy()` method
+   *   - A `performAgain()` function that can be used to perform the side
+   *     effect again, after automatically calling the destroyer
    */
-  public perform(effect: Function): string {
+  public perform<D extends any[]>(
+    effect: Function,
+    dependencies?: D,
+  ): PerformanceResult<D> {
     let destroyer = effect()
+    let id = generateId()
 
-    if (destroyer === undefined || destroyer === null) return
-    if (typeof destroyer !== 'function') {
-      throw new Error(
-        'Effect must return undefined, null, or a function; found: ' +
-          typeof destroyer,
-      )
+    if (destroyer !== undefined && destroyer !== null) {
+      validateDestroyer(destroyer)
+      this.destroyers[id] = destroyer
     }
 
-    let key = generateId()
-    this.destroyers[key] = destroyer
-    return key
+    return {
+      pedlar: this,
+      id,
+      dependencies,
+      performAgain(currentDependencies?: D) {
+        let hasChanged = compare(this.dependencies, currentDependencies)
+        if (!hasChanged) return
+
+        this.dependencies = currentDependencies
+        let currentDestroyer = this.pedlar.destroyers[id]
+
+        if (currentDestroyer) {
+          currentDestroyer()
+          let newDestroyer = effect()
+          this.pedlar.destroyers[id] = newDestroyer
+        } else {
+          // If the effect did not originally return a destroyer, it is not
+          // possible for it to return one on subsequent calls
+          effect()
+        }
+      },
+    }
   }
 
   /**
@@ -66,15 +95,48 @@ export class Pedlar {
    * @param handler The handler that should be invoked when the event is emitted
    * @param options Event listener options
    */
-  public addEvent<K extends keyof HTMLElementEventMap>(
-    el: HTMLElement,
+  public addEvent<K extends keyof HTMLElementEventMap, D extends any[]>(
+    el: Element,
     eventType: K,
     handler: EventListenerOrEventListenerObject,
     options?: boolean | EventListenerOptions,
-  ): string {
+  ): PerformanceResult<D> {
     return this.perform(() => {
       el.addEventListener(eventType, handler, options)
       return () => el.removeEventListener(eventType, handler, options)
     })
   }
+}
+
+function validateDestroyer(destroyer: Function) {
+  if (typeof destroyer === 'function') return
+  throw new Error(
+    'Effect must return undefined, null, or a function; found: ' +
+      typeof destroyer,
+  )
+}
+
+function compare<T extends any[]>(oldValues: T, newValues: T) {
+  if (!oldValues && !newValues) return true
+
+  // If one of them is falsy but not the other
+  if (!oldValues || !newValues) {
+    throw new Error(
+      'The same dependency array must always be passed to perform() and performAgain()',
+    )
+  }
+
+  if (oldValues.length !== newValues.length) {
+    throw new Error(
+      'Dependency arrays must always be the same length for each effect',
+    )
+  }
+
+  for (let i = 0; i < oldValues.length; ++i) {
+    let oldValue = oldValues[i]
+    let newValue = newValues[i]
+    if (oldValue === newValue) continue
+    return true
+  }
+  return false
 }
