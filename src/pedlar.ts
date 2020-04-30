@@ -1,5 +1,12 @@
 import {generateId} from './generateId'
 
+export type PedlarSideEffect = () => (() => void) | void
+
+export type PedlarEffect = {
+  id: string
+  perform: (currentDependencies?: any[]) => void
+}
+
 /**
  * A utility for logically grouping the performance and
  * destruction of side effects. Inspired by React's useEffect() hook.
@@ -8,31 +15,81 @@ export class Pedlar {
   private destroyers: {[id: string]: Function} = {}
 
   /**
+   * Create a side effect and immediately specify the work required
+   * to clean up that that side effect.  This ensures that these
+   * highly related functions are logically grouped in your code.
+   *
+   * @param sideEffect The side effect to eventually perform.  This
+   * effect can return another function that when invoked will clean
+   * up the original effect.  The returned function will automatically
+   * be invoked when the side effect is destroyed.
+   * @returns A `PedlarEffect` object containing:
+   *   - The ID of this side effect that can be used to individually
+   *    clean it up by calling the `destroy()` method
+   *   - A `perform()` function that can be used to perform the side
+   *     effect again, after automatically calling the destroyer
+   */
+  public create<D extends any[]>(sideEffect: PedlarSideEffect): PedlarEffect {
+    return {
+      pedlar: this,
+      id: null,
+      perform(currentDependencies?: D) {
+        let neverRan = this.id === null
+
+        if (neverRan) {
+          this.id = generateId()
+          this.dependencies = currentDependencies
+
+          let destroyer = sideEffect()
+
+          if (destroyer !== undefined && destroyer !== null) {
+            validateDestroyer(destroyer as Function)
+            this.pedlar.destroyers[this.id] = destroyer
+          }
+        } else {
+          if (!dependenciesChanged(this.dependencies, currentDependencies)) {
+            return
+          }
+
+          this.dependencies = currentDependencies
+          let currentDestroyer = this.pedlar.destroyers[this.id]
+
+          if (currentDestroyer) {
+            currentDestroyer()
+            let newDestroyer = sideEffect()
+            this.pedlar.destroyers[this.id] = newDestroyer
+          } else {
+            // If the effect did not originally return a destroyer, it is not
+            // allowed to return one on subsequent calls
+            sideEffect()
+          }
+        }
+      },
+    } as PedlarEffect
+  }
+
+  /**
    * Perform a side effect and immediately specify the work required
    * to clean up that that side effect.  This ensures that these
    * highly related functions are logically grouped in your code.
    *
-   * @param effect The side effect to perform.  This effect can
+   * @param sideEffect The side effect to perform.  This effect can
    * return another function that when invoked will clean up the
    * original effect.  The returned function will automatically be
    * invoked when the side effect is destroyed.
-   * @returns The ID of this side effect, that can be used to
-   * individually clean it up by calling the `destroy() method.
+   * @returns A `PedlarEffect` object containing:
+   *   - The ID of this side effect that can be used to individually
+   *    clean it up by calling the `destroy()` method
+   *   - A `perform()` function that can be used to perform the side
+   *     effect again, after automatically calling the destroyer
    */
-  public perform(effect: Function): string {
-    let destroyer = effect()
-
-    if (destroyer === undefined || destroyer === null) return
-    if (typeof destroyer !== 'function') {
-      throw new Error(
-        'Effect must return undefined, null, or a function; found: ' +
-          typeof destroyer,
-      )
-    }
-
-    let key = generateId()
-    this.destroyers[key] = destroyer
-    return key
+  public perform<D extends any[]>(
+    sideEffect: PedlarSideEffect,
+    dependencies?: D,
+  ): PedlarEffect {
+    let effect = this.create(sideEffect)
+    effect.perform(dependencies)
+    return effect
   }
 
   /**
@@ -66,15 +123,62 @@ export class Pedlar {
    * @param handler The handler that should be invoked when the event is emitted
    * @param options Event listener options
    */
-  public addEvent<K extends keyof HTMLElementEventMap>(
-    el: HTMLElement,
-    eventType: K,
+  public addEvent(
+    el: Element,
+    eventType: keyof HTMLElementEventMap,
     handler: EventListenerOrEventListenerObject,
     options?: boolean | EventListenerOptions,
-  ): string {
+  ): PedlarEffect {
     return this.perform(() => {
       el.addEventListener(eventType, handler, options)
       return () => el.removeEventListener(eventType, handler, options)
     })
   }
 }
+
+function validateDestroyer(destroyer: Function) {
+  if (typeof destroyer === 'function') return
+  throw new Error(
+    'Effect must return undefined, null, or a function; found: ' +
+      typeof destroyer,
+  )
+}
+
+/**
+ * @returns `true` if the arrays are different when the values are
+ * compared index by index, using strict equality comparison.
+ *
+ * Objects are compared by reference, so two objects, even if they
+ * have the same contents, are considered different.  Conversely,
+ * if the same object has been mutated, no change will be detected.
+ */
+function dependenciesChanged<T extends any[]>(
+  oldDependencies: T,
+  newDependencies: T,
+) {
+  // If no dependencies are passed, we just run the side effect again
+  if (!oldDependencies && !newDependencies) return true
+
+  // If one of them is falsy but not the other
+  if (!oldDependencies || !newDependencies) {
+    throw new Error(
+      'The same dependency array must always be passed to perform()',
+    )
+  }
+
+  if (oldDependencies.length !== newDependencies.length) {
+    throw new Error(
+      'Dependency arrays must always be the same length for each effect',
+    )
+  }
+
+  for (let i = 0; i < oldDependencies.length; ++i) {
+    let oldValue = oldDependencies[i]
+    let newValue = newDependencies[i]
+    if (oldValue === newValue) continue
+    return true
+  }
+  return false
+}
+
+export default Pedlar
