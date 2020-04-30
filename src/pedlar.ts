@@ -140,3 +140,5 @@ function compare<T extends any[]>(oldValues: T, newValues: T) {
   }
   return false
 }
+
+export default Pedlar
