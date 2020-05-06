@@ -1,6 +1,6 @@
 {
   "name": "pedlar",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "A JavaScript utility for logically grouping the performance and destruction of side effects",
   "main":   "dist/pedlar.js",
   "files": ["dist/*"],

@@ -142,7 +142,7 @@ pedlar.destroy(id)
 
 Clean up all side effects that have been performed since the last time this function was called.
 
-### `addEvent(el, eventType, handler)`
+### `addEvent(el, eventType, handler, options)`
 
 Perform the specific side effect of adding an event listener to an element. This event is then automatically removed when the side effect is destroyed.
 
@@ -154,3 +154,7 @@ Perform the specific side effect of adding an event listener to an element. This
 | options       | `boolean \| EventListenerOptions`    | Optional. These options get passed directly through to the `addEventListener` function. |
 
 [event-types]: https://developer.mozilla.org/en-US/docs/Web/Events
+
+### `addCustomEvent(el, eventType, handler, options)`
+
+Identical to `addEvent()` except that the `eventType` argument accepts any string

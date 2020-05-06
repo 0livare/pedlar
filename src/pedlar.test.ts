@@ -380,7 +380,7 @@ describe('destroyAll()', () => {
 })
 
 describe('addEvent()', () => {
-  let handler: EventListenerOrEventListenerObject
+  let handler: EventListener
   let mockEl: {
     addEventListener: jest.Mock
     removeEventListener: jest.Mock
@@ -422,6 +422,53 @@ describe('addEvent()', () => {
   it('properly passes options down', () => {
     let options = {zach: 'iscool'}
     pedlar.addEvent(element, 'click', handler, options as any)
+    expect(mockEl.addEventListener.mock.calls[0][2]).toBe(options)
+  })
+})
+
+describe('addCustomEvent()', () => {
+  let handler: EventListener
+  let mockEl: {
+    addEventListener: jest.Mock
+    removeEventListener: jest.Mock
+  }
+  let element: Element
+
+  beforeEach(() => {
+    mockEl = {
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    }
+    element = (mockEl as unknown) as Element
+
+    handler = jest.fn()
+  })
+
+  it('immediately adds the event', () => {
+    pedlar.addCustomEvent(element, 'click', handler)
+    expect(mockEl.addEventListener.mock.calls[0][0]).toEqual('click')
+    expect(mockEl.addEventListener.mock.calls[0][1]).toEqual(handler)
+  })
+
+  it('does not invoke the event handler', () => {
+    pedlar.addCustomEvent(element, 'click', handler)
+    expect(handler).not.toHaveBeenCalled()
+  })
+
+  it('does not immediately remove the event', () => {
+    pedlar.addCustomEvent(element, 'click', handler)
+    expect(mockEl.removeEventListener).not.toHaveBeenCalled()
+  })
+
+  it('removes the event when effect is destroyed', () => {
+    let {id} = pedlar.addCustomEvent(element, 'click', handler)
+    pedlar.destroy(id)
+    expect(mockEl.removeEventListener).toHaveBeenCalledTimes(1)
+  })
+
+  it('properly passes options down', () => {
+    let options = {zach: 'iscool'}
+    pedlar.addCustomEvent(element, 'click', handler, options as any)
     expect(mockEl.addEventListener.mock.calls[0][2]).toBe(options)
   })
 })

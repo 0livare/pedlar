@@ -118,6 +118,9 @@ export class Pedlar {
    * listener is then automatically removed when the side effect
    * is destroyed.
    *
+   * This function is identical to `addCustomEvent()` except that
+   * it is statically typed to only allow predefined HTML event types.
+   *
    * @param el The Element to add this event to
    * @param eventType The type of event to add to the element
    * @param handler The handler that should be invoked when the event is emitted
@@ -126,7 +129,27 @@ export class Pedlar {
   public addEvent(
     el: Element,
     eventType: keyof HTMLElementEventMap,
-    handler: EventListenerOrEventListenerObject,
+    handler: EventListener,
+    options?: boolean | EventListenerOptions,
+  ): PedlarEffect {
+    return this.addCustomEvent.call(this, ...arguments)
+  }
+
+  /**
+   * A shorthand for `perform()` that performs the specific
+   * effect of adding an event listener to an element.  This
+   * listener is then automatically removed when the side effect
+   * is destroyed.
+   *
+   * @param el The Element to add this event to
+   * @param eventType The type of event to add to the element
+   * @param handler The handler that should be invoked when the event is emitted
+   * @param options Event listener options
+   */
+  public addCustomEvent(
+    el: Element,
+    eventType: string,
+    handler: EventListener,
     options?: boolean | EventListenerOptions,
   ): PedlarEffect {
     return this.perform(() => {
