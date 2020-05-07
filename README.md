@@ -158,3 +158,89 @@ Perform the specific side effect of adding an event listener to an element. This
 ### `addCustomEvent(el, eventType, handler, options)`
 
 Identical to `addEvent()` except that the `eventType` argument accepts any string
+
+## Additional Examples
+
+### An Angular directive with `OnInit` and `OnChanges`
+
+Here is a small Angular directive that has a single input, `isDisabled`. The directive pushes most of its functionality off to a plan old JavaScript object called `myComponent`. The directive just needs to set the `.disabled` property of `myComponent` when the value of the the `isDisabled` input changes.
+
+**Without Pedlar**, this looks like:
+
+```ts
+export class MyDirective implements OnInit, OnChanges, OnDestroy {
+  @Input() isDisabled = false
+
+  private elementRef: ElementRef
+  private myComponent: MyComponent
+
+  constructor(elementRef: ElementRef) {
+    this.elementRef = elementRef
+  }
+
+  ngOnInit() {
+    this.myComponent = new MyComponent(this.elementRef.nativeElement)
+    // Perform the side effect of modifying the component
+    // for the first time
+    this.myComponent.disabled = this.isDisabled
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    // Explicitly check for changes to EVERY dependency
+    if (changes.isDisabled.currentValue !== changes.isDisabled.previousValue) {
+      // Perform the side effect of modifying the component
+      // for the SECOND time
+      this.myComponent.disabled = changes.isDisabled.currentValue
+    }
+  }
+
+  ngOnDestroy() {
+    this.myComponent.destroy()
+  }
+}
+```
+
+**With Pedlar**, this code can improved by:
+
+- Removing the duplicate code that sets `this.myComponent.disabled`
+- Remove the code that explicitly checks for changes to the dependencies
+
+```ts
+export class MyDirective implements OnInit, OnChanges, OnDestroy {
+  @Input() isDisabled = false
+
+  private elementRef: ElementRef
+  private myComponent: MyComponent
+
+  private pedlar: Pedlar
+  private disabledEffect: PedlarEffect
+
+  constructor(elementRef: ElementRef) {
+    this.elementRef = elementRef
+    this.pedlar = new Pedlar()
+  }
+
+  ngOnInit() {
+    this.myComponent = new MyComponent(this.elementRef.nativeElement)
+
+    // Create and perform the side effect
+    this.disabledEffect = this.pedlar.perform(() => {
+      this.myComponent.disabled = this.isDisabled
+    }, [this.isDisabled])
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    // Automatically re-perform the side effect if the dependency has changed
+    this.disabledEffect.perform([changes.isDisabled.currentValue])
+  }
+
+  ngOnDestroy() {
+    this.myComponent.destroy()
+    this.pedlar.destroyAll()
+  }
+}
+```
+
+The difference may seem minor here because we wanted to keep the examples pretty simple. But as `MyDirective` grows and adds more and more inputs (and therefore more side effects), the benefits of writing the code to perform each side effect only once grows exponentially.
+
+Additionally, if the (potentially) complicated logic of performing your side effect changes, you don't have to remember to update the logic in multiple places.
