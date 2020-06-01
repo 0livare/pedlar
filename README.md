@@ -157,7 +157,22 @@ Perform the specific side effect of adding an event listener to an element. This
 
 ### `addCustomEvent(el, eventType, handler, options)`
 
-Identical to `addEvent()` except that the `eventType` argument accepts any string
+Identical to `addEvent()` except that the `eventType` argument is typed to accept any string
+
+### `waitForEvent(el, eventType, handler, options)`
+
+Add an event listener to an element that is immediately removed after the event fires. The listener is guaranteed to only fire once.
+
+| Argument name | Type                                 | Description                                                                             |
+| ------------- | ------------------------------------ | --------------------------------------------------------------------------------------- |
+| element       | `Element`                            | The Element wait for the event to fire on                                               |
+| eventType     | `keyof HTMLElementEventMap` (string) | The [type][event-types] of event to wait for                                            |
+| handler       | `EventListenerOrEventListenerObject` | The event handler                                                                       |
+| options       | `boolean \| EventListenerOptions`    | Optional. These options get passed directly through to the `addEventListener` function. |
+
+### `waitForCustomEvent(el, eventType, handler, options)`
+
+Identical to `waitForEvent()` except that the `eventType` argument is typed to accept any string
 
 ## Additional Examples
 

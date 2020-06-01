@@ -4,11 +4,24 @@ let pedlar: Pedlar
 let destroyer = jest.fn()
 let sideEffect = jest.fn(() => destroyer)
 
+let mockEl = {
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+}
+let element = (mockEl as unknown) as Element
+let handler: EventListener
+
 beforeEach(() => {
   pedlar = new Pedlar()
   destroyer.mockClear()
   sideEffect.mockClear()
+
+  mockEl.addEventListener.mockClear()
+  mockEl.removeEventListener.mockClear()
+  handler = jest.fn()
 })
+
+beforeEach(() => {})
 
 describe('create()', () => {
   it('does not immediately invoke the side effect function', () => {
@@ -380,23 +393,6 @@ describe('destroyAll()', () => {
 })
 
 describe('addEvent()', () => {
-  let handler: EventListener
-  let mockEl: {
-    addEventListener: jest.Mock
-    removeEventListener: jest.Mock
-  }
-  let element: Element
-
-  beforeEach(() => {
-    mockEl = {
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-    }
-    element = (mockEl as unknown) as Element
-
-    handler = jest.fn()
-  })
-
   it('immediately adds the event', () => {
     pedlar.addEvent(element, 'click', handler)
     expect(mockEl.addEventListener.mock.calls[0][0]).toEqual('click')
@@ -427,23 +423,6 @@ describe('addEvent()', () => {
 })
 
 describe('addCustomEvent()', () => {
-  let handler: EventListener
-  let mockEl: {
-    addEventListener: jest.Mock
-    removeEventListener: jest.Mock
-  }
-  let element: Element
-
-  beforeEach(() => {
-    mockEl = {
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-    }
-    element = (mockEl as unknown) as Element
-
-    handler = jest.fn()
-  })
-
   it('immediately adds the event', () => {
     pedlar.addCustomEvent(element, 'click', handler)
     expect(mockEl.addEventListener.mock.calls[0][0]).toEqual('click')
@@ -470,5 +449,39 @@ describe('addCustomEvent()', () => {
     let options = {zach: 'iscool'}
     pedlar.addCustomEvent(element, 'click', handler, options as any)
     expect(mockEl.addEventListener.mock.calls[0][2]).toBe(options)
+  })
+})
+
+describe('waitForEvent()', () => {
+  it('immediately adds the event listener', () => {
+    pedlar.waitForEvent(element, 'click', handler)
+    expect(mockEl.addEventListener).toHaveBeenCalledTimes(1)
+  })
+
+  it('removes the event listener after the event first fires', () => {
+    pedlar.waitForEvent(element, 'click', handler)
+
+    let eventListener = mockEl.addEventListener.mock.calls[0][1]
+    eventListener()
+
+    expect(mockEl.addEventListener).toHaveBeenCalledTimes(1)
+    expect(mockEl.removeEventListener).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('waitForCustomEvent()', () => {
+  it('immediately adds the event listener', () => {
+    pedlar.waitForCustomEvent(element, 'click', handler)
+    expect(mockEl.addEventListener).toHaveBeenCalledTimes(1)
+  })
+
+  it('removes the event listener after the event first fires', () => {
+    pedlar.waitForCustomEvent(element, 'click', handler)
+
+    let eventListener = mockEl.addEventListener.mock.calls[0][1]
+    eventListener()
+
+    expect(mockEl.addEventListener).toHaveBeenCalledTimes(1)
+    expect(mockEl.removeEventListener).toHaveBeenCalledTimes(1)
   })
 })

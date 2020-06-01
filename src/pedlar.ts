@@ -157,7 +157,52 @@ export class Pedlar {
       return () => el.removeEventListener(eventType, handler, options)
     })
   }
+
+  /**
+   * Wait for a particular event to fire, and then run a callback
+   * function one (and only one) time.
+   *
+   * @param el The Element wait for the event to fire on
+   * @param eventType The type of event to wait for
+   * @param handler The handler that should be invoked a single time after the event fires
+   * @param options Event listener options
+   */
+  public waitForEvent(
+    el: Element,
+    eventType: keyof HTMLElementEventMap,
+    handler: EventListener,
+    options?: boolean | EventListenerOptions,
+  ) {
+    return this.waitForCustomEvent.call(this, ...arguments)
+  }
+
+  /**
+   * Wait for a particular event to fire, and then run a callback
+   * function one (and only one) time.
+   *
+   * @param el The Element wait for the event to fire on
+   * @param eventType The type of event to wait for
+   * @param handler The handler that should be invoked a single time after the event fires
+   * @param options Event listener options
+   */
+  public waitForCustomEvent(
+    el: Element,
+    eventType: string,
+    handler: EventListener,
+    options?: boolean | EventListenerOptions,
+  ) {
+    let wrappedHandler = (e: Event) => {
+      handler(e)
+      el.removeEventListener(eventType, wrappedHandler, options)
+    }
+
+    el.addEventListener(eventType, wrappedHandler, options)
+  }
 }
+
+//////////////////////////////////////////
+// HELPER FUNCTIONS
+//////////////////////////////////////////
 
 function validateDestroyer(destroyer: Function) {
   if (typeof destroyer === 'function') return
